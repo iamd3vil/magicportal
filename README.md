@@ -9,6 +9,8 @@ It can be run on two modes:
 1. `forwarder`: Has to be run in this mode on the server where data has to be received.
 2. `agent`: Has to be run in this mode on the server where multicast isn't supported.
 
+> Note: TLS can be enabled, but currently `Magicportal` doesn't support client certificates. This will be suppported in the future.
+
 Magicportal needs a config file named `config.json` in the same directory as Magicportal.
 
 An example config file:
@@ -26,7 +28,8 @@ An example config file:
       }
     ],
     "mode": "forwarder",
-    "nats_url": "nats://127.0.0.1:4222"
+    "tls_enabled": true,
+    "nats_url": "tls://127.0.0.1:4222"
 }
 
 ```

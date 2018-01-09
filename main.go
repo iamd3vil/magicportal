@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net"
@@ -20,6 +21,7 @@ type Config struct {
 	MulticastGroups []MulticastGroup `json:"multicast_groups"`
 	Mode            string           `json:"mode"`
 	NatsURL         string           `json:"nats_url"`
+	TLS             bool             `json:"tls_enabled"`
 }
 
 // MulticastGroup contains address and interface
@@ -36,8 +38,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Connect to Nats
-	nc, err := nats.Connect(config.NatsURL)
+	var nc *nats.Conn
+
+	if config.TLS {
+		conf := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		// Connect to Nats
+		nc, err = nats.Connect(config.NatsURL, nats.Secure(conf))
+	} else {
+		// Connect to Nats
+		nc, err = nats.Connect(config.NatsURL)
+	}
 
 	if err != nil {
 		log.Fatal("Cannot connect to NATS. Error: ", err)

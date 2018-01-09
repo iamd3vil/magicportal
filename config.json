@@ -1,14 +1,11 @@
 {
     "multicast_groups": [
       {
-        "multicast_addr": "224.1.1.1:9999",
-        "interface": "lo"
-      },
-      {
-        "multicast_addr": "224.1.1.2:10000",
+        "multicast_addr": "225.0.0.37:24113",
         "interface": "lo"
       }
     ],
     "mode": "forwarder",
-    "nats_url": "nats://127.0.0.1:4222"
+    "tls_enabled": false,
+    "nats_url": "nats://51.15.61.68:4223"
 }

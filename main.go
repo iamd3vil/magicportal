@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	maxDataGramSize = 8192
+	maxDataGramSize = 1024
 )
 
 // Config defines the config to be given for magicportal in a json file.
@@ -22,6 +22,12 @@ type Config struct {
 	Mode            string           `json:"mode"`
 	NatsURL         string           `json:"nats_url"`
 	TLS             bool             `json:"tls_enabled"`
+
+	// If this is enabled data will be sent as unicast udp data instead of multicast
+	SendAsUnicast bool `json:"send_as_unicast"`
+
+	// Map of multicast group and the corresponding unicast address
+	UnicastAddrs map[string]string `json:"unicast_addrs"`
 }
 
 // MulticastGroup contains address and interface
@@ -70,7 +76,18 @@ func main() {
 		}
 	} else if config.Mode == "agent" {
 		for _, grp := range config.MulticastGroups {
-			connAddr, err := net.ResolveUDPAddr("udp", grp.MulticastAddr)
+			var connAddr *net.UDPAddr
+			var err error
+			if config.SendAsUnicast {
+				udpAddr, ok := config.UnicastAddrs[grp.MulticastAddr]
+				if !ok {
+					continue
+				}
+
+				connAddr, err = net.ResolveUDPAddr("udp", udpAddr)
+			} else {
+				connAddr, err = net.ResolveUDPAddr("udp", grp.MulticastAddr)
+			}
 
 			if err != nil {
 				log.Fatalf("Cannot resolve %v", grp.MulticastAddr)
@@ -79,7 +96,6 @@ func main() {
 			conn, err := net.DialUDP("udp", nil, connAddr)
 
 			nc.Subscribe(grp.MulticastAddr, func(msg *nats.Msg) {
-				log.Printf("Received from NATS on %v : %v", grp.MulticastAddr, msg.Data)
 				conn.Write(msg.Data)
 			})
 		}
@@ -127,18 +143,15 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 
 	for {
 		b := make([]byte, maxDataGramSize)
-		_, _, err := l.ReadFromUDP(b)
+		len, _, err := l.ReadFromUDP(b)
 		if err != nil {
 			log.Fatal("ReadFromUDP failed:", err)
 		}
 
-		message := trimBytes(b)
+		log.Printf("Number of bytes read: %d", len)
 
 		// Publish to Nats
-		nc.Publish(multicastAddr, message)
-
-		log.Println("Received message: ", message)
-
+		nc.Publish(multicastAddr, b[:len])
 	}
 }
 

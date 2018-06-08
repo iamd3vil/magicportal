@@ -17,21 +17,21 @@ An example config file:
 
 ```json
 {
-    "multicast_groups": [
-      {
-        "multicast_addr": "224.1.1.1:9999",
-        "interface": "lo"
-      },
-      {
-        "multicast_addr": "224.1.1.2:10000",
-        "interface": "lo"
-      }
-    ],
-    "mode": "forwarder",
-    "tls_enabled": true,
-    "nats_url": "tls://127.0.0.1:4222"
+  "multicast_groups": [
+    {
+      "multicast_addr": "233.1.2.5:34074",
+      "interface": "lo"
+    }
+  ],
+  "mode": "agent",
+  "tls_enabled": false,
+  "nats_url": "nats://127.0.0.1:4222",
+  "send_as_unicast": true,
+  "unicast_addrs": {
+    "233.1.2.5:34074": "127.0.0.1:24113"
+  }
 }
 
 ```
 
-We can give multiple multicast groups in the `multicast_groups` array.
+We can give multiple multicast groups in the `multicast_groups` array. `send_as_unicast` will tell the agent to send the data as unicast to the address mapped with the multicast group in `unicast_addrs`.

@@ -1,11 +1,15 @@
 {
-    "multicast_groups": [
-      {
-        "multicast_addr": "225.0.0.37:24113",
-        "interface": "lo"
-      }
-    ],
-    "mode": "forwarder",
-    "tls_enabled": false,
-    "nats_url": "nats://51.15.61.68:4223"
+  "multicast_groups": [
+    {
+      "multicast_addr": "233.1.2.5:34074",
+      "interface": "lo"
+    }
+  ],
+  "mode": "agent",
+  "tls_enabled": false,
+  "nats_url": "nats://127.0.0.1:4222",
+  "send_as_unicast": true,
+  "unicast_addrs": {
+    "233.1.2.5:34074": "127.0.0.1:24113"
+  }
 }

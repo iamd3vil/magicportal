@@ -8,7 +8,7 @@ import (
 	"net"
 	"sync"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 )
 

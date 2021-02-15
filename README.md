@@ -29,9 +29,9 @@ An example config file:
   "send_as_unicast": true,
   "unicast_addrs": {
     "233.1.2.5:34074": "127.0.0.1:24113"
-  }
+  },
+  "max_packet_size": 1024
 }
-
 ```
 
 We can give multiple multicast groups in the `multicast_groups` array. `send_as_unicast` will tell the agent to send the data as unicast to the address mapped with the multicast group in `unicast_addrs`.

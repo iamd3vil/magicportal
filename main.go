@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	maxDataGramSize = 1024
+	// DefaultMaxDataGramSize is the default maximum size of a UDP packet
+	DefaultMaxDataGramSize = 1024
 )
 
 // Config defines the config to be given for magicportal in a json file.
@@ -27,6 +28,8 @@ type Config struct {
 
 	// Map of multicast group and the corresponding unicast address
 	UnicastAddrs map[string]string `json:"unicast_addrs"`
+
+	MaxPacketSize int `json:"max_packet_size"`
 }
 
 // MulticastGroup contains address and interface
@@ -71,7 +74,7 @@ func main() {
 	// If mode is forwarder start server goroutines
 	if config.Mode == "forwarder" {
 		for _, grp := range config.MulticastGroups {
-			go serveMulticastUDP(grp.MulticastAddr, grp.Interface, &wg, nc)
+			go serveMulticastUDP(grp.MulticastAddr, grp.Interface, &wg, nc, config)
 		}
 	} else if config.Mode == "agent" {
 		for _, grp := range config.MulticastGroups {
@@ -103,22 +106,22 @@ func main() {
 	wg.Wait()
 }
 
-func readConfig() (*Config, error) {
+func readConfig() (Config, error) {
 	data, err := ioutil.ReadFile("config.json")
 
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
 	config := Config{}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
-	return &config, nil
+	return config, nil
 }
 
-func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc *nats.Conn) {
+func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc *nats.Conn, cfg Config) {
 	defer wg.Done()
 	addr, err := net.ResolveUDPAddr("udp", multicastAddr)
 
@@ -136,11 +139,17 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 		log.Fatalf("Got error while listening to multicast address: %v", err)
 	}
 
+	maxDataGramSize := DefaultMaxDataGramSize
+
+	if cfg.MaxPacketSize != 0 {
+		maxDataGramSize = cfg.MaxPacketSize
+	}
+
 	l.SetReadBuffer(maxDataGramSize)
 
 	log.Printf("Listening for %v", multicastAddr)
 
-	b := make([]byte, maxDataGramSize)
+	b := make([]byte, 0, maxDataGramSize)
 	for {
 		len, _, err := l.ReadFromUDP(b)
 		if err != nil {

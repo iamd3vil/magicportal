@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
@@ -141,8 +140,8 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 
 	log.Printf("Listening for %v", multicastAddr)
 
+	b := make([]byte, maxDataGramSize)
 	for {
-		b := make([]byte, maxDataGramSize)
 		len, _, err := l.ReadFromUDP(b)
 		if err != nil {
 			log.Fatal("ReadFromUDP failed:", err)
@@ -152,9 +151,8 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 
 		// Publish to Nats
 		nc.Publish(multicastAddr, b[:len])
-	}
-}
 
-func trimBytes(data []byte) []byte {
-	return bytes.Trim(data, "\x00")
+		// Reset b
+		b = b[:]
+	}
 }

@@ -6,11 +6,18 @@
     }
   ],
   "mode": "agent",
-  "tls_enabled": false,
-  "nats_url": "nats://127.0.0.1:4222",
-  "send_as_unicast": true,
-  "unicast_addrs": {
-    "233.1.2.5:34074": "127.0.0.1:24113"
+  "nats": {
+    "tls": false,
+    "nats_url": "nats://127.0.0.1:4222",
+    "auth_enabled": false,
+    "username": "",
+    "password": ""
+  },
+  "agent": {
+    "send_as_unicast": true,
+    "unicast_addrs": {
+      "233.1.2.5:34074": "127.0.0.1:24113"
+    }
   },
   "max_packet_size": 1024
 }

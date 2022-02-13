@@ -1,0 +1,18 @@
+mode = "agent"
+multicast_groups = [
+    {multicast_addr = "233.1.2.5:34074", interface = "lo"}
+]
+max_packet_size = 1024
+
+[nats]
+tls = false
+nats_url = ["nats://127.0.0.1:4222"]
+auth_enabled = false
+username = ""
+password = ""
+
+[agent]
+send_as_unicast = true
+
+[agent.unicast_addrs]
+"233.1.2.5:34074" = "127.0.0.1:24113"

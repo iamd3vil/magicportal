@@ -1,3 +1,5 @@
 .vscode
 *.bin
 dist/
+config.json
+config.toml

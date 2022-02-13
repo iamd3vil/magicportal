@@ -2,13 +2,15 @@ package main
 
 import (
 	"crypto/tls"
-	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"net"
+	"os"
+	"strings"
 	"sync"
 
 	nats "github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -16,47 +18,34 @@ const (
 	DefaultMaxDataGramSize = 1024
 )
 
-// Config defines the config to be given for magicportal in a json file.
-type Config struct {
-	MulticastGroups []MulticastGroup `json:"multicast_groups"`
-	Mode            string           `json:"mode"`
-	NatsURL         string           `json:"nats_url"`
-	TLS             bool             `json:"tls_enabled"`
-
-	// If this is enabled data will be sent as unicast udp data instead of multicast
-	SendAsUnicast bool `json:"send_as_unicast"`
-
-	// Map of multicast group and the corresponding unicast address
-	UnicastAddrs map[string]string `json:"unicast_addrs"`
-
-	MaxPacketSize int `json:"max_packet_size"`
-}
-
-// MulticastGroup contains address and interface
-type MulticastGroup struct {
-	MulticastAddr string `json:"multicast_addr"`
-	Interface     string `json:"interface"`
-}
-
 func main() {
-
-	config, err := readConfig()
-
-	if err != nil {
-		log.Fatal(err)
+	fset := pflag.NewFlagSet("magicportal", pflag.ExitOnError)
+	fset.Usage = func() {
+		fmt.Println(fset.FlagUsages())
+		os.Exit(0)
 	}
+
+	cfgPath := fset.String("config", "config.toml", "Configuration path")
+	fset.Parse(os.Args[1:])
+
+	config, err := initConfig(*cfgPath)
+	if err != nil {
+		log.Fatalf("error initializing config: %v", err)
+	}
+
+	log.Println(config)
 
 	var nc *nats.Conn
 
-	if config.TLS {
+	if config.CfgNats.TLS {
 		conf := &tls.Config{
 			InsecureSkipVerify: true,
 		}
 		// Connect to Nats
-		nc, err = nats.Connect(config.NatsURL, nats.Secure(conf))
+		nc, err = nats.Connect(strings.Join(config.CfgNats.NatsURL, ","), nats.Secure(conf))
 	} else {
 		// Connect to Nats
-		nc, err = nats.Connect(config.NatsURL)
+		nc, err = nats.Connect(strings.Join(config.CfgNats.NatsURL, ","))
 	}
 
 	if err != nil {
@@ -80,8 +69,8 @@ func main() {
 		for _, grp := range config.MulticastGroups {
 			var connAddr *net.UDPAddr
 			var err error
-			if config.SendAsUnicast {
-				udpAddr, ok := config.UnicastAddrs[grp.MulticastAddr]
+			if config.CfgAgent.SendAsUnicast {
+				udpAddr, ok := config.CfgAgent.UnicastAddrs[grp.MulticastAddr]
 				if !ok {
 					continue
 				}
@@ -96,6 +85,9 @@ func main() {
 			}
 
 			conn, err := net.DialUDP("udp", nil, connAddr)
+			if err != nil {
+				log.Fatalf("error dialling %s: %v", connAddr, err)
+			}
 
 			nc.Subscribe(grp.MulticastAddr, func(msg *nats.Msg) {
 				conn.Write(msg.Data)
@@ -104,21 +96,6 @@ func main() {
 	}
 
 	wg.Wait()
-}
-
-func readConfig() (Config, error) {
-	data, err := ioutil.ReadFile("config.json")
-
-	if err != nil {
-		return Config{}, err
-	}
-
-	config := Config{}
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return Config{}, err
-	}
-	return config, nil
 }
 
 func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc *nats.Conn, cfg Config) {
@@ -149,7 +126,7 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 
 	log.Printf("Listening for %v", multicastAddr)
 
-	b := make([]byte, 0, maxDataGramSize)
+	b := make([]byte, maxDataGramSize)
 	for {
 		len, _, err := l.ReadFromUDP(b)
 		if err != nil {
@@ -162,6 +139,6 @@ func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc 
 		nc.Publish(multicastAddr, b[:len])
 
 		// Reset b
-		b = b[:]
+		b = b[:0]
 	}
 }

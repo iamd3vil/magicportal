@@ -63,7 +63,10 @@ func main() {
 	// If mode is forwarder start server goroutines
 	if config.Mode == "forwarder" {
 		for _, grp := range config.MulticastGroups {
-			go serveMulticastUDP(grp.MulticastAddr, grp.Interface, &wg, nc, config)
+			go func(grp CfgMulticastGroup) {
+				defer wg.Done()
+				serveMulticastUDP(grp.MulticastAddr, grp.Interface, nc, config)
+			}(grp)
 		}
 	} else if config.Mode == "agent" {
 		for _, grp := range config.MulticastGroups {
@@ -98,8 +101,7 @@ func main() {
 	wg.Wait()
 }
 
-func serveMulticastUDP(multicastAddr string, inf string, wg *sync.WaitGroup, nc *nats.Conn, cfg Config) {
-	defer wg.Done()
+func serveMulticastUDP(multicastAddr string, inf string, nc *nats.Conn, cfg Config) {
 	addr, err := net.ResolveUDPAddr("udp", multicastAddr)
 
 	if err != nil {

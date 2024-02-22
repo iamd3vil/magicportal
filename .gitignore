@@ -3,3 +3,8 @@
 dist/
 config.json
 config.toml
+
+# Added by cargo
+
+/target
+.envrc

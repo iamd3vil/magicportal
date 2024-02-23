@@ -3,12 +3,13 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use async_nats::Client;
 use futures::StreamExt;
 use miette::{miette, Context, IntoDiagnostic, Result};
-use tokio::net::UdpSocket;
-use tracing::{error, info};
+use tokio::{net::UdpSocket, select};
+use tokio_util::sync::CancellationToken;
+use tracing::{debug, error, info};
 
 use crate::cfg::{Cfg, CfgMulticastGroup};
 
-pub async fn start_agent(cfg: Cfg) -> Result<()> {
+pub async fn start_agent(cfg: Cfg, cancel_token: CancellationToken) -> Result<()> {
     info!("Starting agent with config: {:?}", cfg);
 
     // Start a NATS client.
@@ -24,11 +25,18 @@ pub async fn start_agent(cfg: Cfg) -> Result<()> {
     for grp in grps {
         let nc = nc.clone();
         let unicast_addrs = unicast_addrs.clone();
+        let cancel_token = cancel_token.clone();
 
         // Spawn a tokio task for each multicast group.
         let handle = tokio::spawn(async move {
-            let res =
-                subscribe_and_process(&grp, nc, cfg.agent.send_as_unicast, unicast_addrs).await;
+            let res = subscribe_and_process(
+                &grp,
+                nc,
+                cfg.agent.send_as_unicast,
+                unicast_addrs,
+                cancel_token,
+            )
+            .await;
             if res.is_err() {
                 // Log the error.
                 error!(error = %res.err().unwrap(), "Task failed");
@@ -50,7 +58,10 @@ async fn subscribe_and_process(
     nc: Client,
     send_as_unicast: bool,
     unicast_addrs: Arc<Option<HashMap<String, String>>>,
+    cancel_token: CancellationToken,
 ) -> Result<()> {
+    info!(group = grp.multicast_addr, "waiting for messages");
+
     if send_as_unicast {
         if unicast_addrs.is_none() {
             return Err(miette!(
@@ -112,15 +123,25 @@ async fn subscribe_and_process(
     }
 
     // Process messages.
-    while let Some(msg) = sub.next().await {
-        info!("Received message");
+    loop {
+        select! {
+            Some(msg) = sub.next() => {
+                debug!(
+                    len = msg.payload.len(),
+                    grp = grp.multicast_addr,
+                    "Received message"
+                );
 
-        socket
-            .send(&msg.payload)
-            .await
-            .into_diagnostic()
-            .wrap_err("sending message to socket")?;
+                socket
+                    .send(&msg.payload)
+                    .await
+                    .into_diagnostic()
+                    .wrap_err("sending message to socket")?;
+            }
+            _ = cancel_token.cancelled() => {
+                debug!(grp = grp.multicast_addr, "exiting loop");
+                return Ok(())
+            }
+        }
     }
-
-    Ok(())
 }

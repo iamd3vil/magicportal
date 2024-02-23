@@ -3,12 +3,13 @@ use std::net::{Ipv4Addr, SocketAddr};
 use miette::{miette, Context, IntoDiagnostic, Result};
 use pnet::datalink;
 use tokio::net::UdpSocket;
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 
 use crate::cfg::{Cfg, CfgMulticastGroup};
 
-pub async fn start_forwarder(cfg: Cfg) -> Result<()> {
-    info!("Starting forwarder with config: {:?}", cfg);
+pub async fn start_forwarder(cfg: Cfg, cancel_token: CancellationToken) -> Result<()> {
+    info!("Starting forwarder...");
 
     // Start a NATS client.
     let nc = async_nats::connect(&cfg.nats.nats_url.join(","))
@@ -24,9 +25,10 @@ pub async fn start_forwarder(cfg: Cfg) -> Result<()> {
     let mut handles = Vec::new();
     for grp in grps {
         let nc = nc.clone();
+        let cancel_token = cancel_token.clone();
         debug!(multicast_addr = %grp.multicast_addr, "Starting task for multicast group");
         let handle = tokio::spawn(async move {
-            let res = process_multicast(&grp, &nc, cfg.max_packet_size).await;
+            let res = process_multicast(&grp, &nc, cfg.max_packet_size, cancel_token).await;
             if let Err(e) = res {
                 error!(error = %e, "Task failed");
             }
@@ -48,6 +50,7 @@ pub async fn process_multicast(
     grp: &CfgMulticastGroup,
     nc: &async_nats::Client,
     max_packet_size: usize,
+    cancel_token: CancellationToken,
 ) -> Result<()> {
     // Convert multicast addr to SocketAddr.
     let addr = grp
@@ -90,20 +93,26 @@ pub async fn process_multicast(
     // Receive packets and forward them to NATS.
     let mut buf = vec![0u8; max_packet_size];
     loop {
-        let (len, _) = socket
-            .recv_from(&mut buf)
-            .await
-            .into_diagnostic()
-            .wrap_err("receiving packet failed")?;
+        tokio::select! {
+            packet = socket.recv_from(&mut buf) => {
+                if let Err(err) = packet {
+                    return Err(err).into_diagnostic().wrap_err("receving from socket");
+                }
+                let (len, _) = packet.unwrap();
+                debug!(length = len, "Received packet");
 
-        debug!(length = len, "Received packet");
+                let payload = buf[..len].to_vec();
 
-        let payload = buf[..len].to_vec();
-
-        nc.publish(grp.multicast_addr.clone(), payload.into())
-            .await
-            .into_diagnostic()
-            .wrap_err("publishing to NATS failed")?;
+                nc.publish(grp.multicast_addr.clone(), payload.into())
+                    .await
+                    .into_diagnostic()
+                    .wrap_err("publishing to NATS failed")?;
+            }
+            _ = cancel_token.cancelled() => {
+                debug!(grp = grp.multicast_addr, "exiting loop");
+                return Ok(())
+            }
+        }
     }
 }
 

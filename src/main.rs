@@ -8,6 +8,7 @@ use tracing_subscriber::EnvFilter;
 mod agent;
 mod cfg;
 mod forwarder;
+mod init;
 
 #[derive(Debug, Options)]
 struct Args {
@@ -34,7 +35,6 @@ async fn main() -> Result<()> {
     let handle: JoinHandle<_>;
     match cfg.mode {
         cfg::Mode::Agent => {
-            println!("Agent mode");
             let cancel_token = cancel_token.clone();
             handle = tokio::spawn(async move { agent::start_agent(cfg, cancel_token).await });
         }

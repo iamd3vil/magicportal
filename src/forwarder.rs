@@ -6,16 +6,16 @@ use tokio::net::UdpSocket;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 
-use crate::cfg::{Cfg, CfgMulticastGroup};
+use crate::{
+    cfg::{Cfg, CfgMulticastGroup},
+    init,
+};
 
 pub async fn start_forwarder(cfg: Cfg, cancel_token: CancellationToken) -> Result<()> {
     info!("Starting forwarder...");
 
     // Start a NATS client.
-    let nc = async_nats::connect(&cfg.nats.nats_url.join(","))
-        .await
-        .into_diagnostic()
-        .wrap_err("connecting to NATS failed")?;
+    let nc = init::init_nats(&cfg.nats).await?;
 
     debug!("Connected to NATS");
 

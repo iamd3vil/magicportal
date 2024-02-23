@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use config::{File, FileFormat};
-use miette::{Context, IntoDiagnostic, Result};
+use miette::{miette, Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -43,8 +43,27 @@ pub struct CfgMulticastGroup {
 }
 
 pub async fn parse_config(cfg_path: &str) -> Result<Cfg> {
+    // Check file extension.
+    let path = PathBuf::from(cfg_path);
+    if let None = path.extension() {
+        return Err(miette!(
+            "config file extension should be either .json or .toml"
+        ));
+    }
+    let ext = path.extension().unwrap();
+    let formatter: FileFormat;
+    match ext.to_str() {
+        Some("json") => formatter = FileFormat::Json,
+        Some("toml") => formatter = FileFormat::Toml,
+        _ => {
+            return Err(miette!(
+                "config file extension should be either .json or .toml"
+            ));
+        }
+    }
+
     let settings = config::Config::builder()
-        .add_source(File::new(cfg_path, FileFormat::Json))
+        .add_source(File::new(cfg_path, formatter))
         .build()
         .into_diagnostic()
         .wrap_err("parsing config failed")?;

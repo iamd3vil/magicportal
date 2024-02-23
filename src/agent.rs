@@ -47,7 +47,7 @@ pub async fn start_agent(cfg: Cfg, cancel_token: CancellationToken) -> Result<()
 
     // Wait for all tasks to finish.
     for handle in handles {
-        let _ = handle.await.into_diagnostic().wrap_err("task failed")?;
+        handle.await.into_diagnostic().wrap_err("task failed")?;
     }
 
     Ok(())
@@ -62,12 +62,10 @@ async fn subscribe_and_process(
 ) -> Result<()> {
     info!(group = grp.multicast_addr, "waiting for messages");
 
-    if send_as_unicast {
-        if unicast_addrs.is_none() {
-            return Err(miette!(
-                "unicast_addrs can't be empty if send_as_unicast is true"
-            ));
-        }
+    if send_as_unicast && unicast_addrs.is_none() {
+        return Err(miette!(
+            "unicast_addrs can't be empty if send_as_unicast is true"
+        ));
     }
 
     // Subscribe to the NATS subject.
@@ -77,7 +75,7 @@ async fn subscribe_and_process(
         .into_diagnostic()
         .wrap_err("subscribing to NATS failed")?;
 
-    let unicast_addrs = Option::clone(&unicast_addrs.as_ref()).unwrap();
+    let unicast_addrs = Option::clone(unicast_addrs.as_ref()).unwrap();
 
     let socket = UdpSocket::bind("0.0.0.0:0")
         .await

@@ -1,6 +1,6 @@
 use gumdrop::Options;
 use miette::{IntoDiagnostic, Result};
-use tokio::{signal, task::JoinHandle};
+use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -32,18 +32,16 @@ async fn main() -> Result<()> {
 
     let cancel_token = CancellationToken::new();
 
-    let handle: JoinHandle<_>;
-    match cfg.mode {
+    let handle = match cfg.mode {
         cfg::Mode::Agent => {
             let cancel_token = cancel_token.clone();
-            handle = tokio::spawn(async move { agent::start_agent(cfg, cancel_token).await });
+            tokio::spawn(async move { agent::start_agent(cfg, cancel_token).await })
         }
         cfg::Mode::Forwarder => {
             let cancel_token = cancel_token.clone();
-            handle =
-                tokio::spawn(async move { forwarder::start_forwarder(cfg, cancel_token).await });
+            tokio::spawn(async move { forwarder::start_forwarder(cfg, cancel_token).await })
         }
-    }
+    };
 
     // Spawn to wait for ctrl_c and cancel.
     tokio::spawn(async move {

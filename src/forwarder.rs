@@ -40,7 +40,7 @@ pub async fn start_forwarder(cfg: Cfg, cancel_token: CancellationToken) -> Resul
 
     // Wait for all tasks to finish.
     for handle in handles {
-        let _ = handle.await.into_diagnostic().wrap_err("task failed")?;
+        handle.await.into_diagnostic().wrap_err("task failed")?;
     }
 
     Ok(())

@@ -1,0 +1,22 @@
+[package]
+name = "magicportal"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+async-nats = { version = "0.33.0", features = ["service"] }
+config = { version = "0.14.0", features = ["async", "json", "yaml"] }
+futures = "0.3.30"
+gumdrop = "0.8.1"
+miette = { version = "7.1.0", features = ["fancy"] }
+netdev = "0.23.1"
+serde = "1.0.196"
+tokio = { version = "1.36.0", features = ["net", "io-util", "rt-multi-thread", "macros", "signal"] }
+tokio-util = "0.7.10"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+lto = true

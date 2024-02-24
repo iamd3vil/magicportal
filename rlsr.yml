@@ -1,0 +1,28 @@
+releases:
+  - name: "Release to github"
+    dist_folder: "./dist"
+    targets:
+      github:
+        owner: "iamd3vil"
+        repo: "magicportal"
+    checksum:
+      algorithm: "sha256"
+    builds:
+      - command: "just build-linux"
+        bin_name: "magicportal"
+        artifact: "target/x86_64-unknown-linux-gnu/release/magicportal"
+        name: "magicportal-linux-x86_64"
+        additional_files:
+          - "README.md"
+      - command: "just build-windows"
+        bin_name: "magicportal.exe"
+        artifact: "target/x86_64-pc-windows-gnu/release/magicportal.exe"
+        name: "magicportal-windows-x86_64"
+        additional_files:
+          - "README.md"
+      - command: "just build-macos"
+        bin_name: "magicportal_aarch64-apple-darwin"
+        artifact: "target/aarch64-apple-darwin/release/magicportal"
+        name: "magicportal-darwin-aarch64"
+        additional_files:
+          - "README.md"

@@ -1,7 +1,7 @@
-use std::net::{Ipv4Addr, SocketAddr};
-
 use miette::{miette, Context, IntoDiagnostic, Result};
-use pnet::datalink;
+use netdev;
+use std::net::{Ipv4Addr, SocketAddr};
+// use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use tokio::net::UdpSocket;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -66,13 +66,7 @@ pub async fn process_multicast(
         .into_diagnostic()
         .wrap_err("parsing multicast address failed")?;
 
-    let interface_ip = get_interface_ip(&grp.interface);
-
-    if interface_ip.is_none() {
-        return Err(miette!("invalid interface"));
-    }
-
-    let interface_ip = interface_ip.unwrap();
+    let interface_ip = get_interface_ip(&grp.interface)?;
 
     // Start a multicast UDP listener.
     let socket = UdpSocket::bind(grp.multicast_addr.clone())
@@ -82,7 +76,6 @@ pub async fn process_multicast(
 
     debug!(multicast_addr = %grp.multicast_addr, "Bound to multicast address");
 
-    // Join the multicast group.
     socket
         .join_multicast_v4(addr_ip, interface_ip)
         .into_diagnostic()
@@ -116,16 +109,32 @@ pub async fn process_multicast(
     }
 }
 
-fn get_interface_ip(interface_name: &str) -> Option<std::net::Ipv4Addr> {
-    for interface in datalink::interfaces() {
+fn get_interface_ip(interface_name: &str) -> Result<std::net::Ipv4Addr> {
+    // let interfaces = NetworkInterface::show()
+    //     .into_diagnostic()
+    //     .wrap_err("getting interface list")?;
+
+    // for inf in interfaces.iter() {
+    //     if inf.name == interface_name {
+    //         if inf.addr.is_empty() {
+    //             return Err(miette!("error getting interface ip"));
+    //         }
+
+    //         // Return the first IPv4 address.
+    //         for addr in inf.addr.iter() {
+    //             if let IpAddr::V4(ip) = addr.ip() {
+    //                 return Ok(ip);
+    //             }
+    //         }
+    //     }
+    // }
+    // Err(miette!("error getting interface ip"))
+    let interfaces = netdev::get_interfaces();
+    for interface in interfaces {
         if interface.name == interface_name {
-            return interface.ips.iter().find_map(|ip| {
-                match ip.ip() {
-                    std::net::IpAddr::V4(ipv4) => Some(ipv4),
-                    _ => None, // Ignore IPv6 for now
-                }
-            });
+            return Ok(interface.ipv4[0].addr);
         }
     }
-    None // Interface not found
+
+    Err(miette!("error getting interface ip"))
 }

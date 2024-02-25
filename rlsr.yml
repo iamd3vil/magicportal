@@ -9,8 +9,9 @@ releases:
       algorithm: "sha256"
     builds:
       - command: "just build-linux"
-        bin_name: "magicportal"
+        bin_name: "magicportal_{tag}"
         artifact: "target/x86_64-unknown-linux-gnu/release/magicportal"
+        archive_name: "magicportal-{tag}-linux-x86_64"
         name: "magicportal-linux-x86_64"
         additional_files:
           - "README.md"
@@ -18,11 +19,13 @@ releases:
         bin_name: "magicportal.exe"
         artifact: "target/x86_64-pc-windows-gnu/release/magicportal.exe"
         name: "magicportal-windows-x86_64"
+        archive_name: "magicportal-{tag}-windows-x86_64"
         additional_files:
           - "README.md"
       - command: "just build-macos"
         bin_name: "magicportal_aarch64-apple-darwin"
         artifact: "target/aarch64-apple-darwin/release/magicportal"
         name: "magicportal-darwin-aarch64"
+        archive_name: "magicportal-{tag}-darwin-aarch64"
         additional_files:
           - "README.md"

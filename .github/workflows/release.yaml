@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Rlsr Action
-        uses: iamd3vil/rlsr-action@v0.1.1
+        uses: iamd3vil/rlsr-action@v0.2.0
         with:
           config-path: "rlsr.yml"
           # The GITHUB_TOKEN is automatically created by Actions

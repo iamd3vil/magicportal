@@ -27,6 +27,7 @@ jobs:
         with:
           # Fetch all history and tags for changelog generation
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Install curl
         run: |

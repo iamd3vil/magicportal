@@ -31,7 +31,7 @@ jobs:
       - name: Install curl
         run: |
           apt-get update
-          apt-get install -y curl sudo unzip
+          apt-get install -y curl sudo unzip git
 
       - name: Run Rlsr Action
         uses: iamd3vil/rlsr-action@v0.2.0

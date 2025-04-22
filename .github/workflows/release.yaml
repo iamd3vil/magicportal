@@ -28,6 +28,11 @@ jobs:
           # Fetch all history and tags for changelog generation
           fetch-depth: 0
 
+      - name: Install curl
+        run: |
+          apt-get update
+          apt-get install -y curl
+
       - name: Run Rlsr Action
         uses: iamd3vil/rlsr-action@v0.2.0
         with:

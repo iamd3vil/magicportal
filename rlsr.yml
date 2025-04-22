@@ -29,3 +29,8 @@ releases:
         archive_name: "magicportal-{{ meta.tag }}-darwin-aarch64"
         additional_files:
           - "README.md"
+changelog:
+  format: "github"
+  exclude:
+    - "^chore"
+    - "^doc"

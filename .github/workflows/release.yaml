@@ -1,0 +1,40 @@
+name: Create Release using Rlsr
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create GitHub releases
+
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged --shm-size=2g
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+    container:
+      image: ubuntu:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history and tags for changelog generation
+          fetch-depth: 0
+
+      - name: Run Rlsr Action
+        uses: iamd3vil/rlsr-action@v0.1.0
+        with:
+          config-path: "rlsr.yml"
+          # The GITHUB_TOKEN is automatically created by Actions
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: Clean dist before build
+          rm-dist: "true"
+          # Optional: Skip publishing (for testing the build)
+          # skip-publish: 'true'

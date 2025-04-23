@@ -34,3 +34,4 @@ changelog:
   exclude:
     - "^chore"
     - "^doc"
+    - "^ci"

@@ -46,6 +46,8 @@ jobs:
 
       - name: Install rust
         run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
           rustup default stable
           rustup update
           rustup target add x86_64-unknown-linux-gnu

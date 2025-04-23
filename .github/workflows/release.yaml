@@ -22,17 +22,17 @@ jobs:
       image: ubuntu:24.04
 
     steps:
+      - name: Install curl
+        run: |
+          apt-get update
+          apt-get install -y curl sudo unzip git
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           # Fetch all history and tags for changelog generation
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Install curl
-        run: |
-          apt-get update
-          apt-get install -y curl sudo unzip git
 
       - name: Run Rlsr Action
         uses: iamd3vil/rlsr-action@v0.2.0

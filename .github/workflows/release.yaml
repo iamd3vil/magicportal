@@ -19,7 +19,7 @@ jobs:
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
     container:
-      image: ubuntu:latest
+      image: ubuntu:24.04
 
     steps:
       - name: Checkout code

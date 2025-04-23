@@ -44,6 +44,12 @@ jobs:
           LATEST_TAG=$(git describe --abbrev=0 --tags)
           echo "Latest tag: $LATEST_TAG"
 
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          # This doesn't matter for us since we explicitly use targets in the just commands.
+          target: x86_64-unknown-linux-gnu
+
       - name: Run Rlsr Action
         uses: iamd3vil/rlsr-action@v0.2.0
         with:
